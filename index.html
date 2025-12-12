@@ -1,0 +1,453 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>我的效率助理儀表板</title>
+    
+    <link rel="manifest" href="/manifest.json"> 
+    <meta name="theme-color" content="#4a90e2">
+    
+    <style>
+        /* 基礎樣式 */
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: #f4f7f6;
+            color: #333;
+        }
+
+        /* 導覽列樣式 */
+        .navbar {
+            background-color: #4a90e2;
+            color: white;
+            padding: 15px 30px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .navbar a {
+            color: white;
+            text-decoration: none;
+            margin-left: 20px;
+            padding: 5px 10px;
+        }
+        .navbar a.active {
+            border-bottom: 2px solid white;
+            font-weight: bold;
+        }
+
+        /* 實時時間顯示 */
+        #current-time {
+            font-size: 14px;
+            font-weight: bold;
+            padding: 0 10px;
+        }
+
+        /* 儀表板佈局 (三欄式) */
+        .dashboard-grid {
+            display: grid;
+            grid-template-columns: 1fr 3fr 1fr; /* 讓中欄更寬 */
+            gap: 20px;
+            padding: 20px;
+        }
+
+        /* 欄位/卡片通用樣式 */
+        .column {
+            background-color: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+        .column h2 {
+            color: #4a90e2;
+            margin-top: 0;
+            border-bottom: 1px solid #eee;
+            padding-bottom: 10px;
+        }
+
+        /* 任務清單樣式 */
+        .task-list {
+            list-style: none;
+            padding: 0;
+            min-height: 100px;
+        }
+        .task-item {
+            display: flex;
+            align-items: center;
+            padding: 10px 0;
+            border-bottom: 1px dotted #f0f0f0;
+            transition: background-color 0.3s; 
+        }
+        .task-item:last-child {
+            border-bottom: none;
+        }
+        .task-item label {
+            flex-grow: 1;
+            margin-left: 10px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+        }
+
+        /* 任務完成時的視覺樣式 */
+        .task-item.completed label {
+            text-decoration: line-through;
+            color: #aaa;
+        }
+        .task-item.completed {
+            opacity: 0.7;
+        }
+
+        /* 任務緊急程度標籤 */
+        .urgency-badge {
+            font-size: 11px;
+            font-weight: bold;
+            padding: 3px 6px;
+            border-radius: 4px;
+            margin-right: 8px;
+            color: white;
+            text-align: center;
+        }
+        /* 不同的緊急程度顏色 */
+        .urgency-high { background-color: #d0021b; } 
+        .urgency-medium { background-color: #f5a623; } 
+        .urgency-low { background-color: #4a90e2; } 
+        .urgency-none { background-color: #888; } 
+        
+        /* 截止日期樣式 */
+        .deadline {
+            font-size: 12px;
+            margin-left: 10px;
+            font-weight: bold;
+            color: #d0021b; 
+        }
+
+        /* 快速輸入樣式 */
+        .quick-input {
+            display: flex;
+            margin-bottom: 20px;
+        }
+        .quick-input input {
+            flex-grow: 1;
+            padding: 10px;
+            border: 1px solid #ccc;
+            border-radius: 4px 0 0 4px;
+        }
+        .quick-input button {
+            padding: 10px 15px;
+            background-color: #4a90e2;
+            color: white;
+            border: none;
+            border-radius: 0 4px 4px 0;
+            cursor: pointer;
+        }
+
+        /* 進度條樣式 */
+        .progress-bar-container {
+            background-color: #e6e6e6;
+            border-radius: 4px;
+            overflow: hidden;
+            margin-top: 10px;
+        }
+        .progress-bar {
+            background-color: #7ed321;
+            color: white;
+            padding: 5px;
+            text-align: center;
+        }
+    </style>
+</head>
+<body>
+    <div class="dashboard-container">
+        <header class="navbar">
+            <h1>我的效率助理</h1>
+            <nav>
+                <a href="#" class="active">儀表板</a>
+                <a href="#">排程與日曆</a>
+                <a href="#">報告</a>
+            </nav>
+            <div id="current-time"></div>
+        </header>
+
+        <main class="dashboard-grid">
+            <section class="column left-column">
+                <h2>📥 快速輸入</h2>
+                <p style="font-size:12px; color:#555;">請輸入事項後加上 <code>@MM/DD</code> (例如: <code>@12/31</code>) 以設定截止日。</p>
+                <div class="quick-input">
+                    <input type="text" id="task-input" placeholder="例如: 網站設計初稿 @12/20" onkeypress="if(event.key === 'Enter') addTask()">
+                    <button onclick="addTask()">新增</button>
+                </div>
+            </section>
+
+            <section class="column center-column">
+                <h2>⭐ 待辦事項清單 (按緊急程度排序)</h2>
+                <ul id="main-task-list" class="task-list">
+                    </ul>
+            </section>
+
+            <section class="column right-column">
+                <h2>📈 目標與進度預覽</h2>
+                <div class="goal-preview">
+                    <h3>完成 App 開發</h3>
+                    <div class="progress-bar-container">
+                        <div class="progress-bar" style="width: 65%;">65%</div>
+                    </div>
+                    <p>里程碑: 完成前端設計稿 (✓)</p>
+                </div>
+            </section>
+        </main>
+    </div>
+    
+    <script>
+        // 全局任務儲存陣列 (代替資料庫)
+        let tasks = [];
+
+        // 初始化
+        document.addEventListener('DOMContentLoaded', () => {
+            // 實時顯示時間
+            updateCurrentTime();
+            setInterval(updateCurrentTime, 1000); // 每秒更新
+
+            // 監聽主要任務列表的點擊事件
+            document.getElementById('main-task-list').addEventListener('click', handleTaskAction);
+
+            // 預載入範例任務
+            loadInitialTasks(); 
+        });
+
+        // 函數：更新頂部的日期和時間
+        function updateCurrentTime() {
+            const now = new Date();
+            const options = { 
+                weekday: 'short', 
+                year: 'numeric', 
+                month: 'long', 
+                day: 'numeric', 
+                hour: '2-digit', 
+                minute: '2-digit', 
+                second: '2-digit',
+                hour12: false
+            };
+            const timeString = now.toLocaleDateString('zh-TW', options);
+            document.getElementById('current-time').textContent = timeString;
+        }
+
+        // 函數：將範例任務載入到全局陣列
+        function loadInitialTasks() {
+            tasks.push({
+                id: 'init-1',
+                text: '撰寫季度報告',
+                deadline: new Date(2025, 11, 14), // 2025/12/14
+                isCompleted: false
+            });
+            tasks.push({
+                id: 'init-2',
+                text: '準備下週會議材料',
+                deadline: new Date(2025, 11, 25), // 2025/12/25
+                isCompleted: false
+            });
+            tasks.push({
+                id: 'init-3',
+                text: '訂購新辦公用品',
+                deadline: null, 
+                isCompleted: false
+            });
+            
+            // 初始渲染
+            sortAndRenderTasks();
+        }
+
+        // 函數：處理打勾事件
+        function handleTaskAction(event) {
+            if (event.target.type === 'checkbox') {
+                const checkbox = event.target;
+                const taskItem = checkbox.closest('.task-item');
+                const taskId = taskItem.dataset.taskId;
+                
+                // 更新陣列中的狀態
+                const taskIndex = tasks.findIndex(t => t.id === taskId);
+                if (taskIndex !== -1) {
+                    tasks[taskIndex].isCompleted = checkbox.checked;
+                }
+                
+                // 視覺狀態更新
+                if (checkbox.checked) {
+                    taskItem.classList.add('completed');
+                } else {
+                    taskItem.classList.remove('completed');
+                }
+                
+                // 完成或取消完成後，重新排序並渲染清單
+                sortAndRenderTasks();
+            }
+        }
+
+        // 函數：新增任務 (包含日期解析)
+        function addTask() {
+            const input = document.getElementById('task-input');
+            let rawText = input.value.trim();
+            
+            if (rawText === "") {
+                alert("任務內容不能為空！");
+                return;
+            }
+
+            let deadline = null;
+            let deadlineText = null;
+
+            // 解析截止日期 (@MM/DD)
+            const deadlineMatch = rawText.match(/@(\d{1,2}\/\d{1,2})$/); 
+            if (deadlineMatch) {
+                deadlineText = deadlineMatch[1];
+                rawText = rawText.replace(/@(\d{1,2}\/\d{1,2})$/, '').trim();
+                
+                // 嘗試將 MM/DD 轉換為 Date 物件 (預設為今年)
+                const parts = deadlineText.split('/');
+                const month = parseInt(parts[0], 10) - 1; // 月份從 0 開始
+                const day = parseInt(parts[1], 10);
+                const year = new Date().getFullYear();
+                
+                deadline = new Date(year, month, day);
+                // 檢查是否跨年
+                const today = new Date();
+                if (deadline < today && month < today.getMonth()) {
+                     deadline.setFullYear(year + 1);
+                }
+            }
+            
+            // 創建任務物件
+            const newTask = {
+                id: 'task-' + Date.now().toString(),
+                text: rawText,
+                deadline: deadline,
+                isCompleted: false
+            };
+            tasks.push(newTask);
+            
+            input.value = ''; // 清空輸入框
+            
+            // 新增任務後，呼叫排序並渲染函數，強制更新清單
+            sortAndRenderTasks();
+        }
+        
+        // 函數：根據日期和狀態排序任務並重新渲染清單
+        function sortAndRenderTasks() {
+            // 1. 排序邏輯
+            tasks.sort((a, b) => {
+                // 已完成的任務排在最底下
+                if (a.isCompleted !== b.isCompleted) {
+                    return a.isCompleted ? 1 : -1;
+                }
+                
+                // 無截止日期的任務排在有截止日期的後面
+                if (!a.deadline && b.deadline) return 1;
+                if (a.deadline && !b.deadline) return -1;
+                if (!a.deadline && !b.deadline) return 0;
+
+                // 截止日期越近的排在越前面
+                return a.deadline.getTime() - b.deadline.getTime();
+            });
+
+            const listElement = document.getElementById('main-task-list');
+            listElement.innerHTML = ''; // 清空現有清單
+
+            // 2. 渲染邏輯
+            tasks.forEach(task => {
+                renderTaskItem(task, listElement);
+            });
+        }
+
+        // 函數：渲染單個任務項目
+        function renderTaskItem(task, listElement) {
+            const newTaskItem = document.createElement('li');
+            newTaskItem.className = 'task-item' + (task.isCompleted ? ' completed' : '');
+            newTaskItem.dataset.taskId = task.id;
+
+            const checkboxId = 'cb-' + task.id;
+            
+            const checkbox = document.createElement('input');
+            checkbox.type = 'checkbox';
+            checkbox.id = checkboxId;
+            checkbox.checked = task.isCompleted;
+
+            const label = document.createElement('label');
+            label.htmlFor = checkboxId;
+            
+            // 1. 緊急程度標籤 (根據剩餘天數計算)
+            const today = new Date();
+            today.setHours(0, 0, 0, 0); 
+            
+            let urgencyClass = 'urgency-none';
+            let urgencyText = '無日期';
+
+            if (task.deadline) {
+                task.deadline.setHours(0, 0, 0, 0); 
+                
+                const diffTime = task.deadline.getTime() - today.getTime();
+                const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+                
+                if (diffDays < 0) {
+                    urgencyClass = 'urgency-high';
+                    urgencyText = '已逾期';
+                } else if (diffDays === 0) {
+                    urgencyClass = 'urgency-high';
+                    urgencyText = '今天到期';
+                } else if (diffDays <= 3) {
+                    urgencyClass = 'urgency-high';
+                    urgencyText = `剩 ${diffDays} 天`;
+                } else if (diffDays <= 7) {
+                    urgencyClass = 'urgency-medium';
+                    urgencyText = `剩 ${diffDays} 天`;
+                } else {
+                    urgencyClass = 'urgency-low';
+                    urgencyText = '稍後';
+                }
+                
+                // 顯示日期文字
+                const dateOptions = { month: '2-digit', day: '2-digit' };
+                const dateDisplay = task.deadline.toLocaleDateString('zh-TW', dateOptions);
+                const deadlineSpan = document.createElement('span');
+                deadlineSpan.className = 'deadline';
+                deadlineSpan.textContent = `@ ${dateDisplay}`;
+                label.appendChild(deadlineSpan);
+            }
+            
+            const urgencyBadge = document.createElement('span');
+            urgencyBadge.className = `urgency-badge ${urgencyClass}`;
+            urgencyBadge.textContent = urgencyText;
+            label.appendChild(urgencyBadge);
+
+
+            // 2. 任務內容
+            label.appendChild(document.createTextNode(task.text));
+
+            // 3. 預設標籤
+            const tag = document.createElement('span');
+            tag.className = 'tag tag-work';
+            tag.textContent = '#工作';
+
+            // 將元素組合到 li 中
+            newTaskItem.appendChild(checkbox);
+            newTaskItem.appendChild(label);
+            newTaskItem.appendChild(tag);
+            
+            listElement.appendChild(newTaskItem); 
+        }
+        
+        // PWA 註冊 Service Worker 邏輯 (任務 5 整合在此處)
+        if ('serviceWorker' in navigator) {
+          window.addEventListener('load', () => {
+            navigator.serviceWorker.register('/service-worker.js')
+              .then(registration => {
+                console.log('ServiceWorker 註冊成功: ', registration.scope);
+              })
+              .catch(err => {
+                console.log('ServiceWorker 註冊失敗: ', err);
+              });
+          });
+        }
+    </script>
+</body>
+</html>

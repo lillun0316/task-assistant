@@ -1,0 +1,99 @@
+/* 基礎重置與字體 */
+body {
+    font-family: Arial, sans-serif;
+    margin: 0;
+    padding: 0;
+    background-color: #f4f7f6;
+    color: #333;
+}
+
+/* 導覽列樣式 */
+.navbar {
+    background-color: #4a90e2;
+    color: white;
+    padding: 15px 30px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+.navbar a {
+    color: white;
+    text-decoration: none;
+    margin-left: 20px;
+    padding: 5px 10px;
+}
+.navbar a.active {
+    border-bottom: 2px solid white;
+}
+
+/* 儀表板佈局 (三欄式) */
+.dashboard-grid {
+    display: grid;
+    /* 三欄平均分配，寬度可依需求調整 */
+    grid-template-columns: 1fr 2fr 1fr; 
+    gap: 20px;
+    padding: 20px;
+}
+
+/* 欄位/卡片通用樣式 */
+.column {
+    background-color: white;
+    padding: 20px;
+    border-radius: 8px;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+.column h2 {
+    color: #4a90e2;
+    margin-top: 0;
+    border-bottom: 1px solid #eee;
+    padding-bottom: 10px;
+}
+
+/* 任務清單樣式 */
+.task-list {
+    list-style: none;
+    padding: 0;
+}
+.task-item {
+    display: flex;
+    align-items: center;
+    padding: 10px 0;
+    border-bottom: 1px dotted #f0f0f0;
+}
+.task-item:last-child {
+    border-bottom: none;
+}
+.task-item label {
+    flex-grow: 1;
+    margin-left: 10px;
+}
+.high-priority {
+    font-weight: bold;
+    color: #d0021b; /* 紅色強調 */
+}
+
+/* 標籤樣式 */
+.tag {
+    font-size: 12px;
+    padding: 3px 8px;
+    border-radius: 4px;
+    margin-left: auto;
+    color: white;
+}
+.tag-work { background-color: #50e3c2; }
+.tag-personal { background-color: #f5a623; }
+
+/* 進度條樣式 */
+.progress-bar-container {
+    background-color: #e6e6e6;
+    border-radius: 4px;
+    overflow: hidden;
+    margin-top: 10px;
+}
+.progress-bar {
+    background-color: #7ed321;
+    color: white;
+    padding: 5px;
+    text-align: center;
+    transition: width 0.5s ease-in-out;
+}
